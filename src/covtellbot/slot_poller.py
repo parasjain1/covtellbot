@@ -46,23 +46,16 @@ def start_polling():
                 district_cache[district_id] -= 1
                 continue
             curr_date = datetime.date.today().strftime("%d-%m-%Y")
-            url = calender_api.format(cowin_host, str(district_id), curr_date)
+            url = calender_api_public.format(cowin_host, str(district_id), curr_date)
             logger.debug(f"url: {url}")
             response = requests.get(url, headers=cowin_request_headers)
             try:
                 response_json = response.json()
             except Exception as e:
-                # Fallback to public API if realtime API failed for the district
-                logger.exception(f"Failed polling COWIN Realtime API at {datetime.datetime.utcnow()} UTC")
-                url = calender_api_public.format(cowin_host, str(district_id), curr_date)
-                response = requests.get(url, headers=cowin_request_headers)
-                try:
-                    response_json = response.json()
-                except Exception:
-                    logger.exception(f"Failed polling COWIN Public API at {datetime.datetime.utcnow()} UTC. Skipping district.")
-                    time.sleep(DISTRICT_ITERATION_INTERVAL_SECONDS)
-                    continue
+                logger.exception(f"Failed polling COWIN Public API at {datetime.datetime.utcnow()} UTC. Skipping district.")
+                time.sleep(DISTRICT_ITERATION_INTERVAL_SECONDS)
                 update_district_cache = False
+                continue
             logger.debug(response.text)
             try:
                 if check_slots_in_response(response_json) and update_district_cache:
